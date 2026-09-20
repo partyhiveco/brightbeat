@@ -191,10 +191,9 @@ private fun ClassicHomeContent(
         CatalogueFilters(active = activeFilter, onSelect = onFilterSelect)
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("SETLIST", color = Ivory, fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
             Text("${filteredCharts.size} / ${charts.size} SONGS", color = IvoryMuted, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
         }
 
@@ -210,6 +209,7 @@ private fun ClassicHomeContent(
                             chart = chart,
                             metadata = audioMetadata[chart.audioFile],
                             largeText = true,
+                            heightScale = 1.5f,
                             onSelect = { onSelectAudioFile(chart.audioFile) },
                             favorite = chart.audioFile in progress.favorites,
                             onFavorite = { onToggleFavorite(chart.audioFile) },
@@ -774,13 +774,18 @@ private fun CompactFeaturedSongCard(
     chart: Chart,
     metadata: AudioMetadata?,
     largeText: Boolean = false,
+    heightScale: Float = 1f,
     onSelect: () -> Unit,
     favorite: Boolean,
     onFavorite: () -> Unit,
     onPlay: () -> Unit
 ) {
-    val cardHeight = if (largeText) 112.dp else 88.dp
-    val artworkSize = if (largeText) 96.dp else 76.dp
+    val cardHeight = (if (largeText) 112.dp else 88.dp) * heightScale
+    val artworkSize = when {
+        largeText && heightScale > 1f -> 112.dp
+        largeText -> 96.dp
+        else -> 76.dp
+    }
     val hotFont = if (largeText) 12.sp else 8.sp
     val titleFont = if (largeText) 19.5.sp else 13.sp
     val titleLineHeight = if (largeText) 21.sp else 15.sp
