@@ -1,17 +1,12 @@
 package com.example.vosclone.ui.results
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -22,23 +17,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.vosclone.R
 import com.example.vosclone.engine.GameSession
+import com.example.vosclone.ui.components.BrightBeatLogo
+import com.example.vosclone.ui.components.BrightBeatLogoVariant
 import com.example.vosclone.ui.theme.Ink
-import com.example.vosclone.ui.theme.InkElevated
-import com.example.vosclone.ui.theme.InkElevated2
 import com.example.vosclone.ui.theme.Ivory
-import com.example.vosclone.ui.theme.IvoryMuted
-import com.example.vosclone.ui.theme.GradeLetter as GradeLetterStyle
 import com.example.vosclone.ui.theme.PopCyan
-import com.example.vosclone.ui.theme.PopLavender
 import com.example.vosclone.ui.theme.PopPink
 import com.example.vosclone.ui.theme.PopYellow
-import com.example.vosclone.ui.theme.SignalOrange
 
 /** Letter-grade thresholds off weighted accuracy. */
 private fun gradeFor(accuracy: Int): String = when {
@@ -58,105 +55,159 @@ fun ResultsScreen(
     onPlayAgain: () -> Unit,
     onBackToMenu: () -> Unit
 ) {
-    val accuracy = session.accuracyPercent
-    val grade = gradeFor(accuracy)
-
-    Box(modifier = Modifier.fillMaxSize().background(Ink)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFF111E56), Color(0xFF080F30), Ink),
-                    startY = 0f,
-                    endY = size.height
-                )
-            )
-            drawCircle(
-                color = PopPink.copy(alpha = 0.17f),
-                radius = size.width * 0.64f,
-                center = Offset(size.width * 1.02f, size.height * 0.08f)
-            )
-            drawCircle(PopCyan.copy(alpha = 0.11f), size.width * 0.58f, Offset(size.width * -0.04f, size.height * 0.68f))
-            drawCircle(PopLavender.copy(alpha = 0.08f), size.width * 0.55f, Offset(size.width * 0.86f, size.height * 0.85f))
-            for (index in 0..4) {
-                drawLine(
-                    color = if (index % 2 == 0) PopCyan.copy(alpha = 0.16f) else PopPink.copy(alpha = 0.16f),
-                    start = Offset(size.width * (index * 0.25f - 0.1f), 0f),
-                    end = Offset(size.width * (0.2f + index * 0.16f), size.height * 0.66f),
-                    strokeWidth = size.width * 0.028f
-                )
-            }
-        }
-
-        Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 36.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+    Box(Modifier.fillMaxSize().background(Ink)) {
+        Image(
+            painter = painterResource(R.drawable.brightbeat_stage_background),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
+        )
+        // Preserve the concert through the system bars while keeping every
+        // live control and result inside the usable window.
+        BoxWithConstraints(
+            Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()
         ) {
+            val unit = maxWidth.value / 428f
+            val pageHeight = maxHeight
+            val margin = maxWidth * 0.064f
+            val neonBorder = Brush.horizontalGradient(listOf(PopCyan, Color(0xFF797BFF), Color(0xFFFF46F4)))
+
+            BrightBeatLogo(
+                variant = BrightBeatLogoVariant.Brand,
+                contentDescription = "BrightBeat",
+                modifier = Modifier.align(Alignment.TopCenter)
+                    .padding(top = pageHeight * 0.008f).width(maxWidth * 0.68f)
+            )
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth().offset(y = pageHeight * 0.114f)
+                    .padding(horizontal = maxWidth * 0.11f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp * unit)
             ) {
-                Text("SESSION COMPLETE", color = Ivory, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
-                Text("SIGNAL // OFF", color = PopYellow, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                NeonDash(Modifier.weight(1f).height(16.dp * unit))
+                Text(
+                    "SESSION COMPLETE", color = Ivory, fontSize = (24f * unit).sp,
+                    fontWeight = FontWeight.Black, maxLines = 1,
+                    style = TextStyle(shadow = Shadow(PopPink, Offset.Zero, 15f))
+                )
+                NeonDash(Modifier.weight(1f).height(16.dp * unit))
             }
-            Spacer(modifier = Modifier.height(28.dp))
-            Text(displayChartTitle(session.chart.title), color = IvoryMuted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                displayChartTitle(session.chart.title),
+                modifier = Modifier.fillMaxWidth().offset(y = pageHeight * 0.186f)
+                    .padding(horizontal = margin),
+                color = Color(0xFFCDD9FF), fontSize = (18f * unit).sp,
+                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+                maxLines = 2, overflow = TextOverflow.Ellipsis
+            )
+
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Brush.horizontalGradient(listOf(PopPink, PopYellow)))
-                    .border(2.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(18.dp))
-                    .padding(horizontal = 30.dp, vertical = 8.dp)
+                modifier = Modifier.align(Alignment.TopCenter)
+                    .offset(y = pageHeight * 0.229f).size(maxWidth * 0.365f)
+                    .background(
+                        Brush.horizontalGradient(listOf(PopPink, Color(0xFFFF795A), PopYellow)),
+                        RoundedCornerShape(24.dp * unit)
+                    )
+                    .border(2.dp, Color(0xFFFFD5E5), RoundedCornerShape(24.dp * unit)),
+                contentAlignment = Alignment.Center
             ) {
-                Text(grade, style = GradeLetterStyle, color = Ink)
+                Text(
+                    gradeFor(session.accuracyPercent), color = Color(0xFF050D29),
+                    fontSize = (116f * unit).sp, lineHeight = (124f * unit).sp,
+                    fontWeight = FontWeight.Black
+                )
             }
-            Spacer(modifier = Modifier.height(26.dp))
 
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(Brush.verticalGradient(listOf(Color(0xC91B2D68), Color(0xDD0C1740))))
-                    .border(1.dp, PopCyan.copy(alpha = 0.34f), RoundedCornerShape(22.dp))
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
+                modifier = Modifier.fillMaxWidth().offset(y = pageHeight * 0.445f)
+                    .padding(horizontal = margin)
+                    .background(
+                        Brush.linearGradient(listOf(Color(0xEE102A75), Color(0xF009123C), Color(0xED26105D))),
+                        RoundedCornerShape(23.dp * unit)
+                    )
+                    .border(1.7.dp, neonBorder, RoundedCornerShape(23.dp * unit))
+                    .padding(horizontal = 22.dp * unit, vertical = 11.dp * unit)
             ) {
-                StatRow("SCORE", "${session.score}")
-                StatRow("ACCURACY", "$accuracy%")
-                StatRow("MAX COMBO", "${session.maxCombo}")
-                StatRow("PERFECT / GOOD / MISS", "${session.perfectCount} / ${session.goodCount} / ${session.missCount}")
+                ResultStat("SCORE", "${session.score}", unit)
+                ResultDivider()
+                ResultStat("ACCURACY", "${session.accuracyPercent}%", unit)
+                ResultDivider()
+                ResultStat("MAX COMBO", "${session.maxCombo}", unit)
+                ResultDivider()
+                ResultStat("PERFECT / GOOD / MISS", "${session.perfectCount} / ${session.goodCount} / ${session.missCount}", unit)
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-            Button(
-                onClick = onPlayAgain,
-                shape = RoundedCornerShape(18.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PopPink, contentColor = Color.White),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.align(Alignment.TopCenter).offset(y = pageHeight * 0.69f)
+                    .width(maxWidth * 0.60f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(17.dp * unit)
             ) {
-                Text("PLAY AGAIN  ✦", fontWeight = FontWeight.ExtraBold)
+                NeonDash(Modifier.weight(1f).height(20.dp * unit))
+                Text("♪", color = PopCyan, fontSize = (37f * unit).sp,
+                    style = TextStyle(shadow = Shadow(PopPink, Offset(2f, -2f), 14f)))
+                NeonDash(Modifier.weight(1f).height(20.dp * unit))
             }
-            Spacer(modifier = Modifier.height(10.dp))
-            OutlinedButton(
-                onClick = onBackToMenu,
-                shape = RoundedCornerShape(18.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PopCyan.copy(alpha = 0.6f)),
-                modifier = Modifier.fillMaxWidth()
+
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                    .padding(horizontal = margin).padding(bottom = pageHeight * 0.062f),
+                verticalArrangement = Arrangement.spacedBy(12.dp * unit)
             ) {
-                Text("BACK TO HOME", color = PopCyan, fontWeight = FontWeight.Bold)
+                Button(
+                    onClick = onPlayAgain,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(50),
+                    border = BorderStroke(1.5.dp, Color(0xFFFF72D8)),
+                    colors = ButtonDefaults.buttonColors(containerColor = PopPink, contentColor = Color.White)
+                ) {
+                    Text("PLAY AGAIN ✦", fontSize = (20f * unit).sp, fontWeight = FontWeight.ExtraBold)
+                }
+                OutlinedButton(
+                    onClick = onBackToMenu,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xB3061238)),
+                    border = BorderStroke(1.4.dp, PopCyan)
+                ) {
+                    Text("BACK TO HOME", color = PopCyan, fontSize = (19f * unit).sp, fontWeight = FontWeight.ExtraBold)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StatRow(label: String, value: String) {
+private fun ResultStat(label: String, value: String, scale: Float) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        Modifier.fillMaxWidth().height(41.dp * scale),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = IvoryMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Text(value, color = Ivory, fontSize = 16.sp, fontWeight = FontWeight.ExtraBold)
+        Text(label, color = Color(0xFFCFBEFF), fontSize = (14f * scale).sp,
+            fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(value, color = Ivory, fontSize = (21f * scale).sp,
+            fontWeight = FontWeight.ExtraBold, maxLines = 1)
+    }
+}
+
+@Composable
+private fun ResultDivider() {
+    Box(Modifier.fillMaxWidth().height(0.7.dp).background(Color(0xFF555484)))
+}
+
+@Composable
+private fun NeonDash(modifier: Modifier) {
+    Canvas(modifier) {
+        val lines = listOf(
+            Triple(PopPink, Offset(0f, size.height * 0.27f), Offset(size.width, size.height * 0.27f)),
+            Triple(PopCyan, Offset(size.width * 0.26f, size.height * 0.72f), Offset(size.width, size.height * 0.72f))
+        )
+        lines.forEach { (color, start, end) ->
+            drawLine(color.copy(alpha = 0.18f), start, end, 7.dp.toPx(), StrokeCap.Round)
+            drawLine(color, start, end, 2.dp.toPx(), StrokeCap.Round)
+        }
     }
 }
