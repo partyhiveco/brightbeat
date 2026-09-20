@@ -189,20 +189,6 @@ private fun ClassicHomeContent(
         BrandLockup(onSettings = { onNavigate(RootDestination.PROFILE) })
 
         CatalogueFilters(active = activeFilter, onSelect = onFilterSelect)
-        selectedChart?.let { chart ->
-            Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                Box(modifier = Modifier.fillMaxWidth(0.84f)) {
-                    ClassicFeaturedSongCard(
-                        chart = chart,
-                        metadata = audioMetadata[chart.audioFile],
-                        onSelect = { onSelectAudioFile(chart.audioFile) },
-                        favorite = chart.audioFile in progress.favorites,
-                        onFavorite = { onToggleFavorite(chart.audioFile) },
-                        onPlay = { if (chart.owned) onSelectChart(chart) }
-                    )
-                }
-            }
-        }
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -217,6 +203,21 @@ private fun ClassicHomeContent(
             verticalArrangement = Arrangement.spacedBy(9.dp),
             contentPadding = PaddingValues(top = 5.dp, bottom = 80.dp)
         ) {
+            selectedChart?.let { chart ->
+                item(key = "classic-featured-card") {
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        CompactFeaturedSongCard(
+                            chart = chart,
+                            metadata = audioMetadata[chart.audioFile],
+                            largeText = true,
+                            onSelect = { onSelectAudioFile(chart.audioFile) },
+                            favorite = chart.audioFile in progress.favorites,
+                            onFavorite = { onToggleFavorite(chart.audioFile) },
+                            onPlay = { if (chart.owned) onSelectChart(chart) }
+                        )
+                    }
+                }
+            }
             if (filteredCharts.isEmpty()) item { EmptyCatalogueState() }
             filteredCharts.forEachIndexed { index, chart ->
                 val displayChart = chart.withAudioMetadata(audioMetadata[chart.audioFile])
