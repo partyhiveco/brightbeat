@@ -205,11 +205,9 @@ private fun ClassicHomeContent(
             selectedChart?.let { chart ->
                 item(key = "classic-featured-card") {
                     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                        CompactFeaturedSongCard(
+                        ClassicFeaturedSongCard(
                             chart = chart,
                             metadata = audioMetadata[chart.audioFile],
-                            largeText = true,
-                            heightScale = 1.5f,
                             onSelect = { onSelectAudioFile(chart.audioFile) },
                             favorite = chart.audioFile in progress.favorites,
                             onFavorite = { onToggleFavorite(chart.audioFile) },
@@ -661,7 +659,7 @@ private fun ClassicFeaturedSongCard(
             .border(2.dp, PopPink.copy(alpha = 0.75f + glow * 0.25f), RoundedCornerShape(25.dp))
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
+            Box(modifier = Modifier.fillMaxWidth().aspectRatio(584f / 510f)) {
                 CoverArtwork(chart = chart, metadata = metadata)
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val shineX = size.width * shimmer
@@ -682,7 +680,7 @@ private fun ClassicFeaturedSongCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 11.dp, vertical = 6.dp),
+                    .padding(horizontal = 11.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -728,16 +726,14 @@ private fun ClassicFeaturedSongCard(
                     modifier = Modifier.padding(start = 3.dp).clickable(onClick = onFavorite)
                 )
             }
-            SongAccessStrip(chart, dark = false)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
                     .padding(horizontal = 8.dp)
                     .clip(RoundedCornerShape(27.dp))
                     .background(Brush.horizontalGradient(listOf(PopPink, Color(0xFFFF1684), PopPink.copy(alpha = 0.9f))))
                     .clickable(enabled = chart.owned, onClick = onPlay)
-                    .padding(vertical = 6.dp),
+                    .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
