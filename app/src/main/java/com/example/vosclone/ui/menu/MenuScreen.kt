@@ -87,6 +87,7 @@ import com.example.vosclone.ui.theme.SongTitle
 fun MenuScreen(
     charts: List<Chart>,
     progress: PlayerProgress,
+    layoutMode: HomeLayoutMode,
     onToggleFavorite: (String) -> Unit,
     onSelectChart: (Chart) -> Unit,
     onNavigate: (RootDestination) -> Unit
@@ -102,7 +103,6 @@ fun MenuScreen(
     }
     var selectedAudioFile by remember(charts) { mutableStateOf(charts.firstOrNull()?.audioFile) }
     var activeFilter by remember { mutableStateOf(CatalogueFilter.ALL) }
-    var difficultyFilter by remember { mutableStateOf(ChartDifficulty.EASY) }
     val filteredCharts = charts.filter { chart ->
         when (activeFilter) {
             CatalogueFilter.ALL -> true
@@ -110,7 +110,9 @@ fun MenuScreen(
             CatalogueFilter.RECENT -> chart.audioFile == progress.recentSong
             CatalogueFilter.OWNED -> chart.owned
             CatalogueFilter.PACKS -> !chart.owned
-            CatalogueFilter.DIFFICULTY -> chart.difficulty == difficultyFilter
+            CatalogueFilter.EASY -> chart.difficulty == ChartDifficulty.EASY
+            CatalogueFilter.MEDIUM -> chart.difficulty == ChartDifficulty.NORMAL
+            CatalogueFilter.HARD -> chart.difficulty == ChartDifficulty.HARD
         }
     }
     val selectedBaseChart = filteredCharts.firstOrNull { it.audioFile == selectedAudioFile }
@@ -118,101 +120,38 @@ fun MenuScreen(
     val selectedChart = selectedBaseChart?.withAudioMetadata(audioMetadata[selectedBaseChart.audioFile])
 
     Box(modifier = Modifier.fillMaxSize().background(Ink)) {
-        StageBackdrop()
+        StageBackdrop(quietCatalogue = layoutMode == HomeLayoutMode.COMPACT)
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                // Keep the transparent Android status bar, but move the foreground
-                // header below its live inset. The stage artwork remains edge-to-edge.
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp)
-                // Let the setlist run almost to the floating navigation pill. The
-                // pill remains clear of the final row while the lower song text can
-                // reach the same visual vanishing point as the reference.
-                // Keep the last song rows visible almost to the floating nav;
-                // the nav itself remains layered above the scroll surface.
-                .padding(bottom = 48.dp)
-        ) {
-            HomeBrandHeader()
-
-            selectedChart?.let { chart ->
-                FeaturedSongCard(
-                    chart = chart,
-                    metadata = audioMetadata[chart.audioFile],
-                    onSelect = { selectedAudioFile = chart.audioFile },
-                    favorite = chart.audioFile in progress.favorites,
-                    onFavorite = { onToggleFavorite(chart.audioFile) },
-                    onPlay = { if (chart.owned) onSelectChart(chart) }
-                )
-            }
-
-            CatalogueFilters(
-                active = activeFilter,
-                difficulty = difficultyFilter,
-                onSelect = { filter ->
-                    if (filter == CatalogueFilter.DIFFICULTY && activeFilter == filter) {
-                        difficultyFilter = ChartDifficulty.entries[(difficultyFilter.ordinal + 1) % ChartDifficulty.entries.size]
-                    }
-                    activeFilter = filter
-                }
+        val onFilterSelect: (CatalogueFilter) -> Unit = { activeFilter = it }
+        if (layoutMode == HomeLayoutMode.CLASSIC) {
+            ClassicHomeContent(
+                charts = charts,
+                progress = progress,
+                filteredCharts = filteredCharts,
+                selectedChart = selectedChart,
+                selectedAudioFile = selectedAudioFile,
+                audioMetadata = audioMetadata,
+                activeFilter = activeFilter,
+                onFilterSelect = onFilterSelect,
+                onSelectAudioFile = { selectedAudioFile = it },
+                onToggleFavorite = onToggleFavorite,
+                onSelectChart = onSelectChart,
+                onNavigate = onNavigate
             )
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 1.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("SETLIST", color = Ivory, fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
-                Text("${filteredCharts.size} SONGS", color = IvoryMuted, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
-            }
-
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                // Leave enough scroll tail for the final song pill to clear the
-                // floating nav overlay instead of ending underneath it.
-                contentPadding = PaddingValues(top = 2.dp, bottom = 58.dp)
-            ) {
-                if (filteredCharts.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 26.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xD90A1538))
-                                .border(1.dp, PopCyan.copy(alpha = 0.45f), RoundedCornerShape(18.dp))
-                                .padding(horizontal = 20.dp, vertical = 24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "NO SONGS MATCH THIS FILTER",
-                                color = Ivory,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.8.sp
-                            )
-                        }
-                    }
-                }
-                filteredCharts.forEachIndexed { index, chart ->
-                    val displayChart = chart.withAudioMetadata(audioMetadata[chart.audioFile])
-                    item(key = chart.audioFile) {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            PreviewSongRow(
-                                chart = displayChart,
-                                metadata = audioMetadata[chart.audioFile],
-                                accent = listOf(PopCyan, PopPink, PopYellow, PopLavender)[index % 4],
-                                selected = chart.audioFile == selectedAudioFile,
-                                favorite = chart.audioFile in progress.favorites,
-                                onSelect = { selectedAudioFile = chart.audioFile },
-                                onFavorite = { onToggleFavorite(chart.audioFile) },
-                                onPlay = { if (chart.owned) onSelectChart(displayChart) }
-                            )
-                        }
-                    }
-                }
-            }
+        } else {
+            CompactHomeContent(
+                filteredCharts = filteredCharts,
+                selectedChart = selectedChart,
+                selectedAudioFile = selectedAudioFile,
+                progress = progress,
+                audioMetadata = audioMetadata,
+                activeFilter = activeFilter,
+                onFilterSelect = onFilterSelect,
+                onSelectAudioFile = { selectedAudioFile = it },
+                onToggleFavorite = onToggleFavorite,
+                onSelectChart = onSelectChart,
+                onNavigate = onNavigate
+            )
         }
 
         SignalBottomNav(
@@ -224,7 +163,165 @@ fun MenuScreen(
 }
 
 @Composable
-private fun StageBackdrop() {
+private fun ClassicHomeContent(
+    charts: List<Chart>,
+    progress: PlayerProgress,
+    filteredCharts: List<Chart>,
+    selectedChart: Chart?,
+    selectedAudioFile: String?,
+    audioMetadata: Map<String, AudioMetadata>,
+    activeFilter: CatalogueFilter,
+    onFilterSelect: (CatalogueFilter) -> Unit,
+    onSelectAudioFile: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
+    onSelectChart: (Chart) -> Unit,
+    onNavigate: (RootDestination) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = 18.dp)
+            .padding(bottom = 48.dp)
+    ) {
+        Spacer(modifier = Modifier.height(5.dp))
+        ProfileHeader(progress)
+        BrandLockup(onSettings = { onNavigate(RootDestination.PROFILE) })
+
+        CatalogueFilters(active = activeFilter, onSelect = onFilterSelect)
+        SetlistHeader(label = "${filteredCharts.size} / ${charts.size} SONGS")
+
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            verticalArrangement = Arrangement.spacedBy(9.dp),
+            contentPadding = PaddingValues(top = 5.dp, bottom = 80.dp)
+        ) {
+            if (filteredCharts.isEmpty()) item { EmptyCatalogueState() }
+            selectedChart?.let { chart ->
+                item {
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
+                        FeaturedSongCard(
+                            chart = chart,
+                            metadata = audioMetadata[chart.audioFile],
+                            onSelect = { onSelectAudioFile(chart.audioFile) },
+                            favorite = chart.audioFile in progress.favorites,
+                            onFavorite = { onToggleFavorite(chart.audioFile) },
+                            onPlay = { if (chart.owned) onSelectChart(chart) }
+                        )
+                    }
+                }
+            }
+            filteredCharts.filterNot { it.audioFile == selectedChart?.audioFile }.forEachIndexed { index, chart ->
+                val displayChart = chart.withAudioMetadata(audioMetadata[chart.audioFile])
+                item(key = chart.audioFile) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        PreviewSongRow(
+                            chart = displayChart,
+                            metadata = audioMetadata[chart.audioFile],
+                            accent = listOf(PopCyan, PopPink, PopYellow, PopLavender)[index % 4],
+                            selected = chart.audioFile == selectedAudioFile,
+                            favorite = chart.audioFile in progress.favorites,
+                            onSelect = { onSelectAudioFile(chart.audioFile) },
+                            onFavorite = { onToggleFavorite(chart.audioFile) },
+                            onPlay = { if (chart.owned) onSelectChart(displayChart) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactHomeContent(
+    filteredCharts: List<Chart>,
+    selectedChart: Chart?,
+    selectedAudioFile: String?,
+    progress: PlayerProgress,
+    audioMetadata: Map<String, AudioMetadata>,
+    activeFilter: CatalogueFilter,
+    onFilterSelect: (CatalogueFilter) -> Unit,
+    onSelectAudioFile: (String) -> Unit,
+    onToggleFavorite: (String) -> Unit,
+    onSelectChart: (Chart) -> Unit,
+    onNavigate: (RootDestination) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 48.dp)
+    ) {
+        HomeBrandHeader(onSettings = { onNavigate(RootDestination.PROFILE) })
+        selectedChart?.let { chart ->
+            FeaturedSongCard(
+                chart = chart,
+                metadata = audioMetadata[chart.audioFile],
+                largeText = true,
+                onSelect = { onSelectAudioFile(chart.audioFile) },
+                favorite = chart.audioFile in progress.favorites,
+                onFavorite = { onToggleFavorite(chart.audioFile) },
+                onPlay = { if (chart.owned) onSelectChart(chart) }
+            )
+        }
+        CatalogueFilters(active = activeFilter, onSelect = onFilterSelect)
+        SetlistHeader(label = "${filteredCharts.size} SONGS")
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            contentPadding = PaddingValues(top = 2.dp, bottom = 64.dp)
+        ) {
+            if (filteredCharts.isEmpty()) item { EmptyCatalogueState() }
+            filteredCharts.forEachIndexed { index, chart ->
+                val displayChart = chart.withAudioMetadata(audioMetadata[chart.audioFile])
+                item(key = chart.audioFile) {
+                    CompactSongRow(
+                        chart = displayChart,
+                        metadata = audioMetadata[chart.audioFile],
+                        accent = listOf(PopCyan, PopPink, PopYellow, PopLavender)[index % 4],
+                        selected = chart.audioFile == selectedAudioFile,
+                        favorite = chart.audioFile in progress.favorites,
+                        onSelect = { onSelectAudioFile(chart.audioFile) },
+                        onFavorite = { onToggleFavorite(chart.audioFile) },
+                        onPlay = { if (chart.owned) onSelectChart(displayChart) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SetlistHeader(label: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 1.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("SETLIST", color = Ivory, fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
+        Text(label, color = IvoryMuted, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
+    }
+}
+
+@Composable
+private fun EmptyCatalogueState() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 26.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xD90A1538))
+            .border(1.dp, PopCyan.copy(alpha = 0.45f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 20.dp, vertical = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("NO SONGS MATCH THIS FILTER", color = Ivory, fontSize = 13.sp, fontWeight = FontWeight.Black, letterSpacing = 0.8.sp)
+    }
+}
+
+@Composable
+private fun StageBackdrop(quietCatalogue: Boolean) {
     // Keep the generated stage as the actual full-screen surface. It carries
     // the truss, haze, crowd lights, word-art, and side posters as one
     // perspective-locked composition, so Compose content only needs to sit on
@@ -398,15 +495,17 @@ private fun StageBackdrop() {
                 )
             }
         }
-        // Fade the moving concert lighting behind the catalogue so song details
-        // retain the reference's quiet, deep-navy reading surface.
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
-            0f to Color.Transparent,
-            0.12f to Color.Transparent,
-            0.25f to Color(0xED020D20),
-            0.42f to Color(0xFF020D20),
-            1f to Color(0xFF020B1C)
-        )))
+        if (quietCatalogue) {
+            // The compact setlist needs a quiet reading surface; Classic keeps
+            // the brighter poster treatment from the original Home screen.
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(
+                0f to Color.Transparent,
+                0.12f to Color.Transparent,
+                0.25f to Color(0xED020D20),
+                0.42f to Color(0xFF020D20),
+                1f to Color(0xFF020B1C)
+            )))
+        }
     }
 }
 
@@ -470,7 +569,32 @@ private fun CurrencyChip(icon: String, amount: String, accent: Color) {
 }
 
 @Composable
-private fun HomeBrandHeader() {
+private fun BrandLockup(onSettings: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(top = 1.dp, bottom = 2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        BrightBeatLogo(
+            variant = BrightBeatLogoVariant.Brand,
+            contentDescription = "BRIGHTBEAT",
+            modifier = Modifier.width(278.dp)
+        )
+        Text(
+            text = "⚙",
+            color = Ivory,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .clip(RoundedCornerShape(50))
+                .clickable(onClick = onSettings)
+                .padding(8.dp)
+        )
+    }
+}
+
+@Composable
+private fun HomeBrandHeader(onSettings: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxWidth().height(80.dp),
         contentAlignment = Alignment.Center
@@ -486,7 +610,8 @@ private fun HomeBrandHeader() {
                 .padding(top = 14.dp)
                 .size(25.dp)
                 .clip(RoundedCornerShape(50))
-                .background(Color.Transparent),
+                .background(Color.Transparent)
+                .clickable(onClick = onSettings),
             contentAlignment = Alignment.Center
         ) {
             Text("⚙", color = Ivory, fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -498,15 +623,26 @@ private fun HomeBrandHeader() {
 private fun FeaturedSongCard(
     chart: Chart,
     metadata: AudioMetadata?,
+    largeText: Boolean = false,
     onSelect: () -> Unit,
     favorite: Boolean,
     onFavorite: () -> Unit,
     onPlay: () -> Unit
 ) {
+    val cardHeight = if (largeText) 112.dp else 88.dp
+    val artworkSize = if (largeText) 96.dp else 76.dp
+    val hotFont = if (largeText) 12.sp else 8.sp
+    val titleFont = if (largeText) 19.5.sp else 13.sp
+    val titleLineHeight = if (largeText) 21.sp else 15.sp
+    val artistFont = if (largeText) 13.5.sp else 9.sp
+    val metadataFont = if (largeText) 12.sp else 8.sp
+    val starFont = if (largeText) 13.5.sp else 9.sp
+    val playFont = if (largeText) 18.sp else 14.sp
+    val playSize = if (largeText) 45.dp else 37.dp
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(88.dp)
+            .height(cardHeight)
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onSelect)
             .background(Color(0xF205142B))
@@ -514,42 +650,42 @@ private fun FeaturedSongCard(
             .padding(5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.size(76.dp).clip(RoundedCornerShape(5.dp))) {
+        Box(modifier = Modifier.size(artworkSize).clip(RoundedCornerShape(5.dp))) {
             CoverArtwork(chart = chart, metadata = metadata)
         }
         Column(modifier = Modifier.weight(1f).padding(horizontal = 9.dp)) {
             Text(
                 text = if (chart.owned) "HOT 100" else chart.packId.uppercase(),
                 color = Ink,
-                fontSize = 8.sp,
+                fontSize = hotFont,
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.clip(RoundedCornerShape(3.dp)).background(PopYellow).padding(horizontal = 6.dp, vertical = 1.dp)
             )
-            Text(chart.title, color = Ivory, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 2, lineHeight = 15.sp, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
-            Text(chart.artist.ifBlank { "Unknown artist" }, color = IvoryMuted, fontSize = 9.sp, maxLines = 1)
+            Text(chart.title, color = Ivory, fontSize = titleFont, fontWeight = FontWeight.Bold, maxLines = 2, lineHeight = titleLineHeight, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+            Text(chart.artist.ifBlank { "Unknown artist" }, color = IvoryMuted, fontSize = artistFont, maxLines = 1)
             Row(modifier = Modifier.padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("BPM ${chart.bpm}", color = IvoryMuted, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                Text("   |   ${formatDuration(metadata?.durationMs) ?: songDuration(chart, metadata)}", color = IvoryMuted, fontSize = 8.sp)
+                Text("BPM ${chart.bpm}", color = IvoryMuted, fontSize = metadataFont, fontWeight = FontWeight.Bold)
+                Text("   |   ${formatDuration(metadata?.durationMs) ?: songDuration(chart, metadata)}", color = IvoryMuted, fontSize = metadataFont)
             }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 starsFor(chart),
                 color = if (favorite) PopYellow else PopPink,
-                fontSize = 9.sp,
+                fontSize = starFont,
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.clickable(onClick = onFavorite)
             )
             Box(
                 modifier = Modifier
                     .padding(top = 4.dp, end = 2.dp)
-                    .size(37.dp)
+                    .size(playSize)
                     .clip(RoundedCornerShape(50))
                     .border(2.dp, if (chart.owned) PopCyan else IvoryMuted, RoundedCornerShape(50))
                     .clickable(enabled = chart.owned, onClick = onPlay),
                 contentAlignment = Alignment.Center
             ) {
-                Text(if (chart.owned) "▶" else "◆", color = if (chart.owned) PopCyan else PopYellow, fontSize = 14.sp)
+                Text(if (chart.owned) "▶" else "◆", color = if (chart.owned) PopCyan else PopYellow, fontSize = playFont)
             }
         }
     }
@@ -712,6 +848,88 @@ private fun PreviewSongRow(
     }
 }
 
+@Composable
+private fun CompactSongRow(
+    chart: Chart,
+    metadata: AudioMetadata?,
+    accent: Color,
+    selected: Boolean,
+    favorite: Boolean,
+    onSelect: () -> Unit,
+    onFavorite: () -> Unit,
+    onPlay: () -> Unit
+) {
+    val rowAccent = if (selected) PopCyan else accent.copy(alpha = 0.70f)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .clickable(onClick = onSelect)
+            .background(if (selected) Color(0xFF0A1E3A) else Color(0xF205142B))
+            .border(1.dp, rowAccent.copy(alpha = if (selected) 0.82f else 0.52f), RoundedCornerShape(9.dp))
+            .padding(horizontal = 5.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.size(44.dp).clip(RoundedCornerShape(6.dp))) {
+            CoverArtwork(chart = chart, metadata = metadata)
+        }
+        Column(modifier = Modifier.weight(1f).padding(start = 9.dp)) {
+            Text(
+                chart.title,
+                color = if (chart.owned) Ivory else IvoryMuted,
+                style = SongTitle,
+                fontSize = 15.sp,
+                lineHeight = 17.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                chart.artist.ifBlank { "Unknown" },
+                color = IvoryMuted,
+                fontSize = 12.sp,
+                lineHeight = 14.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+        }
+        Text(
+            formatDuration(metadata?.durationMs) ?: songDuration(chart, metadata),
+            color = IvoryMuted,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(horizontal = 6.dp)
+        )
+        Text(
+            starsFor(chart),
+            color = if (favorite) PopYellow else if (chart.owned) PopPink else PopPink.copy(alpha = 0.64f),
+            fontSize = 13.5.sp,
+            fontWeight = FontWeight.ExtraBold,
+            modifier = Modifier.width(66.dp).clickable(onClick = onFavorite)
+        )
+        if (chart.owned) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(50))
+                    .border(1.8.dp, PopCyan, RoundedCornerShape(50))
+                    .clickable(onClick = onPlay),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("▶", color = PopCyan, fontSize = 16.sp)
+            }
+        } else {
+            Row(
+                modifier = Modifier.width(80.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(5.dp)
+            ) {
+                Text("▣", color = IvoryMuted, fontSize = 15.sp)
+                Text(chart.packId, color = IvoryMuted, fontSize = 10.sp, maxLines = 2)
+            }
+        }
+    }
+}
+
 private fun Chart.withAudioMetadata(metadata: AudioMetadata?): Chart = metadata?.let {
     copy(
         title = it.title ?: title,
@@ -735,36 +953,38 @@ private fun starsFor(chart: Chart): String = "★".repeat(chart.stars.coerceIn(1
     "☆".repeat((5 - chart.stars).coerceAtLeast(0))
 
 private enum class CatalogueFilter(val label: String) {
-    ALL("ALL"), FAVORITES("FAVORITES"), RECENT("RECENT"), OWNED("OWNED"), PACKS("PACKS"), DIFFICULTY("DIFFICULTY")
+    ALL("ALL"), FAVORITES("FAVORITES"), RECENT("RECENT"), OWNED("OWNED"), PACKS("PACKS"),
+    EASY("EASY"), MEDIUM("MEDIUM"), HARD("HARD")
 }
 
 @Composable
 private fun CatalogueFilters(
     active: CatalogueFilter,
-    difficulty: ChartDifficulty,
     onSelect: (CatalogueFilter) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         CatalogueFilter.entries.forEach { filter ->
             val selected = filter == active
-            val label = if (filter == CatalogueFilter.DIFFICULTY && selected) {
-                "${difficulty.label.uppercase()}"
-            } else {
-                filter.label
+            val minWidth = when (filter) {
+                CatalogueFilter.ALL -> 58.dp
+                CatalogueFilter.FAVORITES -> 108.dp
+                CatalogueFilter.RECENT -> 82.dp
+                CatalogueFilter.OWNED -> 78.dp
+                CatalogueFilter.PACKS -> 72.dp
+                CatalogueFilter.EASY -> 68.dp
+                CatalogueFilter.MEDIUM -> 86.dp
+                CatalogueFilter.HARD -> 70.dp
             }
             Box(
                 modifier = Modifier
-                    .weight(when (filter) {
-                        CatalogueFilter.ALL -> 0.7f
-                        CatalogueFilter.FAVORITES, CatalogueFilter.DIFFICULTY -> 1.2f
-                        else -> 1f
-                    })
-                    .height(23.dp)
+                    .defaultMinSize(minWidth = minWidth)
+                    .height(34.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(if (selected) PopCyan else Color(0xE8071735))
                     .border(1.dp, if (selected) PopCyan else IvoryMuted.copy(alpha = 0.65f), RoundedCornerShape(14.dp))
@@ -773,9 +993,9 @@ private fun CatalogueFilters(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = label,
+                    text = filter.label,
                     color = if (selected) Ink else Ivory,
-                    fontSize = 7.sp,
+                    fontSize = 11.sp,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
                     softWrap = false

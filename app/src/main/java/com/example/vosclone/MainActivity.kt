@@ -19,6 +19,8 @@ import com.example.vosclone.engine.PlayerProgressStore
 import com.example.vosclone.engine.TimingCalibrationStore
 import com.example.vosclone.ui.calibration.CalibrationScreen
 import com.example.vosclone.ui.gameplay.GameplayScreen
+import com.example.vosclone.ui.menu.HomeLayoutMode
+import com.example.vosclone.ui.menu.HomeLayoutModeStore
 import com.example.vosclone.ui.menu.MenuScreen
 import com.example.vosclone.ui.navigation.RootDestination
 import com.example.vosclone.ui.profile.ProfileScreen
@@ -58,6 +60,11 @@ class MainActivity : ComponentActivity() {
             var screen by remember { mutableStateOf<Screen>(Screen.Menu) }
             var playerProgress by remember { mutableStateOf(PlayerProgressStore.load(this)) }
             var timingOffsetMs by remember { mutableLongStateOf(TimingCalibrationStore.load(this)) }
+            var homeLayoutMode by remember { mutableStateOf(HomeLayoutModeStore.load(this)) }
+            val onHomeLayoutChange: (HomeLayoutMode) -> Unit = { mode ->
+                homeLayoutMode = mode
+                HomeLayoutModeStore.save(this, mode)
+            }
             val onNavigate: (RootDestination) -> Unit = { destination ->
                 screen = when (destination) {
                     RootDestination.SETLIST -> Screen.Menu
@@ -72,6 +79,7 @@ class MainActivity : ComponentActivity() {
                         is Screen.Menu -> MenuScreen(
                             charts = demoCharts,
                             progress = playerProgress,
+                            layoutMode = homeLayoutMode,
                             onToggleFavorite = { audioFile ->
                                 playerProgress = PlayerProgressStore.toggleFavorite(this, audioFile)
                             },
@@ -84,6 +92,8 @@ class MainActivity : ComponentActivity() {
                         is Screen.Shop -> ShopScreen(onNavigate = onNavigate)
                         is Screen.Profile -> ProfileScreen(
                             progress = playerProgress,
+                            homeLayoutMode = homeLayoutMode,
+                            onHomeLayoutChange = onHomeLayoutChange,
                             onNavigate = onNavigate,
                             onCalibrate = { screen = Screen.Calibration }
                         )

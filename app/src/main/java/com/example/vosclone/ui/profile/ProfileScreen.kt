@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +46,7 @@ import com.example.vosclone.engine.PlayerProgress
 import com.example.vosclone.ui.components.BrightBeatActionLabel
 import com.example.vosclone.ui.components.BrightBeatIcon
 import com.example.vosclone.ui.components.BrightBeatScreenHeader
+import com.example.vosclone.ui.menu.HomeLayoutMode
 import com.example.vosclone.ui.navigation.RootDestination
 import com.example.vosclone.ui.navigation.SignalBottomNav
 import com.example.vosclone.ui.theme.Brass
@@ -60,6 +62,8 @@ import com.example.vosclone.ui.theme.PopYellow
 @Composable
 fun ProfileScreen(
     progress: PlayerProgress,
+    homeLayoutMode: HomeLayoutMode,
+    onHomeLayoutChange: (HomeLayoutMode) -> Unit,
     onNavigate: (RootDestination) -> Unit,
     onCalibrate: () -> Unit
 ) {
@@ -87,6 +91,25 @@ fun ProfileScreen(
             ProfileHero(progress)
 
             Spacer(modifier = Modifier.height(16.dp))
+            SectionHeading("HOME STYLE", PopPink)
+            Spacer(modifier = Modifier.height(9.dp))
+            HomeLayoutOption(
+                mode = HomeLayoutMode.CLASSIC,
+                selected = homeLayoutMode == HomeLayoutMode.CLASSIC,
+                title = "CLASSIC BRIGHTBEAT",
+                subtitle = "Profile header, poster hero, and roomy song cards",
+                onSelect = { onHomeLayoutChange(HomeLayoutMode.CLASSIC) }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            HomeLayoutOption(
+                mode = HomeLayoutMode.COMPACT,
+                selected = homeLayoutMode == HomeLayoutMode.COMPACT,
+                title = "COMPACT SETLIST",
+                subtitle = "Fast catalogue browsing with a larger readable type scale",
+                onSelect = { onHomeLayoutChange(HomeLayoutMode.COMPACT) }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
             SectionHeading("ACCESS", PopCyan)
             Spacer(modifier = Modifier.height(9.dp))
             StatusRow("BRIGHTBEAT PASS", "NOT ACTIVE", PopYellow)
@@ -146,6 +169,39 @@ fun ProfileScreen(
             selected = RootDestination.PROFILE,
             onSelect = onNavigate,
             modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+@Composable
+private fun HomeLayoutOption(
+    mode: HomeLayoutMode,
+    selected: Boolean,
+    title: String,
+    subtitle: String,
+    onSelect: () -> Unit
+) {
+    val accent = if (mode == HomeLayoutMode.CLASSIC) PopPink else PopCyan
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) accent.copy(alpha = 0.16f) else Color(0xB8162450))
+            .border(1.dp, accent.copy(alpha = if (selected) 0.95f else 0.55f), RoundedCornerShape(16.dp))
+            .clickable(onClick = onSelect)
+            .padding(horizontal = 15.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = Ivory, fontSize = 14.sp, fontWeight = FontWeight.Black)
+            Text(subtitle, color = IvoryMuted, fontSize = 11.sp, lineHeight = 15.sp, modifier = Modifier.padding(top = 3.dp))
+        }
+        Text(
+            if (selected) "ON" else "USE",
+            color = accent,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 0.5.sp
         )
     }
 }
