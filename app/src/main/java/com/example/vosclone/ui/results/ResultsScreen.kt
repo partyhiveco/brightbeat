@@ -14,11 +14,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -57,7 +61,7 @@ fun ResultsScreen(
 ) {
     Box(Modifier.fillMaxSize().background(Ink)) {
         Image(
-            painter = painterResource(R.drawable.brightbeat_stage_background),
+            painter = painterResource(R.drawable.brightbeat_results_background),
             contentDescription = null,
             contentScale = ContentScale.FillBounds,
             modifier = Modifier.fillMaxSize()
@@ -69,6 +73,7 @@ fun ResultsScreen(
         ) {
             val unit = maxWidth.value / 428f
             val pageHeight = maxHeight
+            val availableWidth = maxWidth
             val margin = maxWidth * 0.064f
             val neonBorder = Brush.horizontalGradient(listOf(PopCyan, Color(0xFF797BFF), Color(0xFFFF46F4)))
 
@@ -76,7 +81,7 @@ fun ResultsScreen(
                 variant = BrightBeatLogoVariant.Brand,
                 contentDescription = "BrightBeat",
                 modifier = Modifier.align(Alignment.TopCenter)
-                    .padding(top = pageHeight * 0.008f).width(maxWidth * 0.68f)
+                    .padding(top = pageHeight * 0.022f).width(maxWidth * 0.64f)
             )
 
             Row(
@@ -89,7 +94,7 @@ fun ResultsScreen(
                 Text(
                     "SESSION COMPLETE", color = Ivory, fontSize = (24f * unit).sp,
                     fontWeight = FontWeight.Black, maxLines = 1,
-                    style = TextStyle(shadow = Shadow(PopPink, Offset.Zero, 15f))
+                    style = TextStyle(shadow = Shadow(Color(0xFF337EFF), Offset.Zero, 18f))
                 )
                 NeonDash(Modifier.weight(1f).height(16.dp * unit))
             }
@@ -103,14 +108,24 @@ fun ResultsScreen(
                 maxLines = 2, overflow = TextOverflow.Ellipsis
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth().offset(y = pageHeight * 0.327f)
+                    .padding(horizontal = maxWidth * 0.14f),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                ResultSpark(PopCyan, Modifier.size(availableWidth * 0.13f, availableWidth * 0.17f))
+                ResultSpark(PopPink, Modifier.size(availableWidth * 0.13f, availableWidth * 0.17f))
+            }
+
             Box(
                 modifier = Modifier.align(Alignment.TopCenter)
-                    .offset(y = pageHeight * 0.229f).size(maxWidth * 0.365f)
+                    .offset(y = pageHeight * 0.225f).size(maxWidth * 0.365f)
+                    .neonGlow(Brush.horizontalGradient(listOf(PopPink, PopYellow)), 24f * unit)
                     .background(
                         Brush.horizontalGradient(listOf(PopPink, Color(0xFFFF795A), PopYellow)),
                         RoundedCornerShape(24.dp * unit)
                     )
-                    .border(2.dp, Color(0xFFFFD5E5), RoundedCornerShape(24.dp * unit)),
+                    .border(2.dp * unit, Color(0xFFFFE2BE), RoundedCornerShape(24.dp * unit)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -123,12 +138,13 @@ fun ResultsScreen(
             Column(
                 modifier = Modifier.fillMaxWidth().offset(y = pageHeight * 0.445f)
                     .padding(horizontal = margin)
+                    .neonGlow(neonBorder, 23f * unit)
                     .background(
-                        Brush.linearGradient(listOf(Color(0xEE102A75), Color(0xF009123C), Color(0xED26105D))),
+                        Brush.linearGradient(listOf(Color(0xF00A226B), Color(0xF2081648), Color(0xED29105A))),
                         RoundedCornerShape(23.dp * unit)
                     )
                     .border(1.7.dp, neonBorder, RoundedCornerShape(23.dp * unit))
-                    .padding(horizontal = 22.dp * unit, vertical = 11.dp * unit)
+                    .padding(horizontal = 22.dp * unit, vertical = 13.dp * unit)
             ) {
                 ResultStat("SCORE", "${session.score}", unit)
                 ResultDivider()
@@ -145,37 +161,87 @@ fun ResultsScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(17.dp * unit)
             ) {
-                NeonDash(Modifier.weight(1f).height(20.dp * unit))
+                MusicDash(Modifier.weight(1f).height(20.dp * unit), false)
                 Text("♪", color = PopCyan, fontSize = (37f * unit).sp,
                     style = TextStyle(shadow = Shadow(PopPink, Offset(2f, -2f), 14f)))
-                NeonDash(Modifier.weight(1f).height(20.dp * unit))
+                MusicDash(Modifier.weight(1f).height(20.dp * unit), true)
             }
 
             Column(
                 modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
-                    .padding(horizontal = margin).padding(bottom = pageHeight * 0.062f),
-                verticalArrangement = Arrangement.spacedBy(12.dp * unit)
+                    .padding(horizontal = margin).padding(bottom = pageHeight * 0.051f),
+                verticalArrangement = Arrangement.spacedBy(14.dp * unit)
             ) {
                 Button(
                     onClick = onPlayAgain,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp * unit)
+                        .neonGlow(Brush.horizontalGradient(listOf(PopPink, Color(0xFFFF41D2))), 50f * unit),
                     shape = RoundedCornerShape(50),
                     border = BorderStroke(1.5.dp, Color(0xFFFF72D8)),
                     colors = ButtonDefaults.buttonColors(containerColor = PopPink, contentColor = Color.White)
                 ) {
-                    Text("PLAY AGAIN ✦", fontSize = (20f * unit).sp, fontWeight = FontWeight.ExtraBold)
+                    Text("PLAY AGAIN", fontSize = (22f * unit).sp, fontWeight = FontWeight.ExtraBold)
                 }
                 OutlinedButton(
                     onClick = onBackToMenu,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(46.dp * unit),
                     shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xB3061238)),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xD9061238)),
                     border = BorderStroke(1.4.dp, PopCyan)
                 ) {
                     Text("BACK TO HOME", color = PopCyan, fontSize = (19f * unit).sp, fontWeight = FontWeight.ExtraBold)
                 }
             }
         }
+    }
+}
+
+/** Soft layered strokes keep the luminous edge outside the readable surface. */
+private fun Modifier.neonGlow(brush: Brush, radius: Float): Modifier = drawBehind {
+    for (width in listOf(18f, 11f, 6f)) {
+        drawRoundRect(
+            brush = brush,
+            cornerRadius = CornerRadius(radius.dp.toPx()),
+            style = Stroke(width.dp.toPx()),
+            alpha = 0.035f
+        )
+    }
+}
+
+@Composable
+private fun ResultSpark(color: Color, modifier: Modifier) {
+    Canvas(modifier) {
+        val star = Path().apply {
+            moveTo(size.width * 0.5f, 0f)
+            lineTo(size.width * 0.62f, size.height * 0.4f)
+            lineTo(size.width, size.height * 0.5f)
+            lineTo(size.width * 0.62f, size.height * 0.6f)
+            lineTo(size.width * 0.5f, size.height)
+            lineTo(size.width * 0.38f, size.height * 0.6f)
+            lineTo(0f, size.height * 0.5f)
+            lineTo(size.width * 0.38f, size.height * 0.4f)
+            close()
+        }
+        drawPath(star, color.copy(alpha = 0.09f), style = Stroke(16.dp.toPx()))
+        drawPath(star, color.copy(alpha = 0.23f), style = Stroke(8.dp.toPx()))
+        drawPath(star, color, style = Stroke(3.dp.toPx()))
+        drawPath(star, Color(0xFFFFFFCF), style = Stroke(1.dp.toPx()))
+    }
+}
+
+@Composable
+private fun MusicDash(modifier: Modifier, mirrored: Boolean) {
+    Canvas(modifier) {
+        fun dash(color: Color, from: Float, to: Float, y: Float) {
+            fun x(fraction: Float) = size.width * if (mirrored) 1f - fraction else fraction
+            val start = Offset(x(from), size.height * y)
+            val end = Offset(x(to), size.height * y)
+            drawLine(color.copy(alpha = 0.12f), start, end, 9.dp.toPx(), StrokeCap.Round)
+            drawLine(color, start, end, 2.5.dp.toPx(), StrokeCap.Round)
+        }
+        dash(PopCyan, 0f, 0.3f, 0.35f)
+        dash(PopPink, 0.42f, 1f, 0.35f)
+        dash(PopYellow, 0.63f, 1f, 0.75f)
     }
 }
 
