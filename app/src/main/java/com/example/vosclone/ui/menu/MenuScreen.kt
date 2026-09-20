@@ -515,7 +515,7 @@ private data class FallingConfetti(
 @Composable
 private fun ProfileHeader(progress: PlayerProgress) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(43.dp),
+        modifier = Modifier.fillMaxWidth().height(30.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
