@@ -1,6 +1,7 @@
 package com.example.vosclone.ui.navigation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,6 +20,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,12 +51,10 @@ fun SignalBottomNav(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(InkElevated)
+            .background(Color(0xFF061126))
             .navigationBarsPadding()
-            .padding(horizontal = 11.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(29.dp))
-            .border(1.dp, PopCyan.copy(alpha = 0.26f), RoundedCornerShape(29.dp)),
-        horizontalArrangement = Arrangement.spacedBy(5.dp)
+            .border(0.5.dp, PopCyan.copy(alpha = 0.28f), RoundedCornerShape(0.dp)),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         RootDestination.entries.forEach { destination ->
             val active = destination == selected
@@ -59,34 +62,61 @@ fun SignalBottomNav(
                 modifier = Modifier
                     .weight(1f)
                     .clickable { onSelect(destination) }
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(if (active) PopPink.copy(alpha = 0.18f) else Color.Transparent)
+                    .background(if (active) PopPink.copy(alpha = 0.06f) else Color.Transparent)
                     // A generous hit target keeps the three primary destinations
                     // comfortable to tap without changing the visual pill.
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 5.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = when (destination) {
-                            RootDestination.SETLIST -> "⌂"
-                            RootDestination.SHOP -> "♢"
-                            RootDestination.PROFILE -> "●"
-                        },
-                        color = if (active) PopPink else IvoryMuted,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        lineHeight = 19.sp
-                    )
+                    Canvas(Modifier.size(20.dp)) {
+                        val tint = if (active) PopPink else IvoryMuted
+                        val stroke = Stroke(width = 1.4.dp.toPx())
+                        val w = size.width
+                        val h = size.height
+                        when (destination) {
+                            RootDestination.SETLIST -> {
+                                val house = Path().apply {
+                                    moveTo(w * .08f, h * .45f)
+                                    lineTo(w * .5f, h * .08f)
+                                    lineTo(w * .92f, h * .45f)
+                                    moveTo(w * .2f, h * .35f)
+                                    lineTo(w * .2f, h * .87f)
+                                    lineTo(w * .8f, h * .87f)
+                                    lineTo(w * .8f, h * .35f)
+                                }
+                                drawPath(house, tint, style = stroke)
+                            }
+                            RootDestination.SHOP -> {
+                                val diamond = Path().apply {
+                                    moveTo(w * .5f, h * .1f)
+                                    lineTo(w * .75f, h * .5f)
+                                    lineTo(w * .5f, h * .9f)
+                                    lineTo(w * .25f, h * .5f)
+                                    close()
+                                }
+                                drawPath(diamond, tint, style = stroke)
+                            }
+                            RootDestination.PROFILE -> {
+                                drawCircle(tint, w * .19f, Offset(w * .5f, h * .27f), style = stroke)
+                                val shoulders = Path().apply {
+                                    moveTo(w * .13f, h * .89f)
+                                    cubicTo(w * .13f, h * .42f, w * .87f, h * .42f, w * .87f, h * .89f)
+                                    close()
+                                }
+                                drawPath(shoulders, tint, style = stroke)
+                            }
+                        }
+                    }
                     Text(
                         text = destination.label,
-                        color = if (active) Ivory else IvoryMuted,
-                        fontSize = 11.sp,
+                        color = if (active) PopPink else IvoryMuted,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = 0.8.sp
                     )
                     if (active) {
-                        Box(modifier = Modifier.padding(top = 4.dp).fillMaxWidth(0.62f).height(3.dp).clip(RoundedCornerShape(3.dp)).background(PopPink))
+                        Box(modifier = Modifier.padding(top = 3.dp).fillMaxWidth(0.56f).height(2.dp).clip(RoundedCornerShape(3.dp)).background(PopPink))
                     }
                 }
             }
