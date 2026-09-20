@@ -188,9 +188,9 @@ private fun ClassicHomeContent(
         ProfileHeader(progress)
         BrandLockup(onSettings = { onNavigate(RootDestination.PROFILE) })
 
-        CatalogueFilters(active = activeFilter, onSelect = onFilterSelect)
+        CatalogueFilters(active = activeFilter, onSelect = onFilterSelect, dense = true)
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -200,7 +200,7 @@ private fun ClassicHomeContent(
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
             verticalArrangement = Arrangement.spacedBy(9.dp),
-            contentPadding = PaddingValues(top = 5.dp, bottom = 80.dp)
+            contentPadding = PaddingValues(top = 2.dp, bottom = 80.dp)
         ) {
             selectedChart?.let { chart ->
                 item(key = "classic-featured-card") {
@@ -573,7 +573,7 @@ private fun CurrencyChip(icon: String, amount: String, accent: Color) {
 @Composable
 private fun BrandLockup(onSettings: () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxWidth().padding(top = 1.dp, bottom = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 1.dp, bottom = 0.dp),
         contentAlignment = Alignment.Center
     ) {
         BrightBeatLogo(
@@ -1099,13 +1099,14 @@ private enum class CatalogueFilter(val label: String) {
 @Composable
 private fun CatalogueFilters(
     active: CatalogueFilter,
-    onSelect: (CatalogueFilter) -> Unit
+    onSelect: (CatalogueFilter) -> Unit,
+    dense: Boolean = false
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(vertical = 8.dp),
+            .padding(vertical = if (dense) 2.dp else 8.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         CatalogueFilter.entries.forEach { filter ->
