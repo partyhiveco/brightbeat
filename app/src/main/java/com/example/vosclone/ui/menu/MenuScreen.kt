@@ -191,16 +191,14 @@ private fun ClassicHomeContent(
         CatalogueFilters(active = activeFilter, onSelect = onFilterSelect)
         selectedChart?.let { chart ->
             Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                Box(modifier = Modifier.fillMaxWidth(0.78f)) {
-                    ClassicFeaturedSongCard(
-                        chart = chart,
-                        metadata = audioMetadata[chart.audioFile],
-                        onSelect = { onSelectAudioFile(chart.audioFile) },
-                        favorite = chart.audioFile in progress.favorites,
-                        onFavorite = { onToggleFavorite(chart.audioFile) },
-                        onPlay = { if (chart.owned) onSelectChart(chart) }
-                    )
-                }
+                ClassicFeaturedSongCard(
+                    chart = chart,
+                    metadata = audioMetadata[chart.audioFile],
+                    onSelect = { onSelectAudioFile(chart.audioFile) },
+                    favorite = chart.audioFile in progress.favorites,
+                    onFavorite = { onToggleFavorite(chart.audioFile) },
+                    onPlay = { if (chart.owned) onSelectChart(chart) }
+                )
             }
         }
         Row(
@@ -516,12 +514,15 @@ private data class FallingConfetti(
 @Composable
 private fun ProfileHeader(progress: PlayerProgress) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(43.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(57.dp), contentAlignment = Alignment.Center) {
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.size(30.dp), contentAlignment = Alignment.Center) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     drawCircle(PopCyan.copy(alpha = 0.95f), radius = size.minDimension / 2f)
                     drawCircle(Color(0xFF071033), radius = size.minDimension / 2f - 4f)
@@ -529,17 +530,22 @@ private fun ProfileHeader(progress: PlayerProgress) {
                     drawCircle(Color(0xFF17194B), radius = size.minDimension / 2f - 11f)
                     drawLine(PopCyan, Offset(size.width * 0.28f, size.height * 0.65f), Offset(size.width * 0.72f, size.height * 0.36f), 3f, cap = StrokeCap.Round)
                 }
-                Text("✦", color = PopYellow, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text("✦", color = PopYellow, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
-            Column(modifier = Modifier.padding(start = 9.dp)) {
-                Text("LV. ${progress.level}", color = PopPink, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold)
-                Text("NEXT ${1_000 - progress.levelXp} EXP", color = Ivory, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp)
-                Box(modifier = Modifier.padding(top = 5.dp).width(83.dp).height(5.dp).clip(RoundedCornerShape(5.dp)).background(Color(0xFF26325C))) {
-                    Box(modifier = Modifier.fillMaxWidth(progress.levelXp / 1_000f).fillMaxSize().background(PopCyan))
-                }
+            Text("LV. ${progress.level}", color = PopPink, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp))
+            Box(
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .width(36.dp)
+                    .height(5.dp)
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(Color(0xFF26325C))
+            ) {
+                Box(modifier = Modifier.fillMaxWidth(progress.levelXp / 1_000f).fillMaxSize().background(PopCyan))
             }
+            Text("NEXT ${1_000 - progress.levelXp} XP", color = Ivory, fontSize = 7.5.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.1.sp, modifier = Modifier.padding(start = 3.dp).width(56.dp), maxLines = 1, softWrap = false)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp), horizontalAlignment = Alignment.End) {
+        Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
             CurrencyChip("♥", "10/10", PopPink)
             CurrencyChip("◇", "1,350", PopCyan)
         }
@@ -550,16 +556,16 @@ private fun ProfileHeader(progress: PlayerProgress) {
 private fun CurrencyChip(icon: String, amount: String, accent: Color) {
     Row(
         modifier = Modifier
-            .width(103.dp)
+            .width(82.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0xCC0D1740))
             .border(1.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 8.dp, vertical = 5.dp),
+            .padding(horizontal = 5.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(icon, color = accent, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text(amount, color = Ivory, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 7.dp))
-        Text("+", color = Ivory, fontSize = 18.sp, modifier = Modifier.padding(start = 5.dp))
+        Text(icon, color = accent, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(amount, color = Ivory, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp))
+        Text("+", color = Ivory, fontSize = 14.sp, modifier = Modifier.padding(start = 3.dp))
     }
 }
 
@@ -652,7 +658,7 @@ private fun ClassicFeaturedSongCard(
             .border(2.dp, PopPink.copy(alpha = 0.75f + glow * 0.25f), RoundedCornerShape(25.dp))
     ) {
         Column {
-            Box(modifier = Modifier.fillMaxWidth().aspectRatio(584f / 510f)) {
+            Box(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)) {
                 CoverArtwork(chart = chart, metadata = metadata)
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val shineX = size.width * shimmer
