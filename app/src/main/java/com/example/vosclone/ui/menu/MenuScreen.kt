@@ -189,7 +189,14 @@ private fun ClassicHomeContent(
         BrandLockup(onSettings = { onNavigate(RootDestination.PROFILE) })
 
         CatalogueFilters(active = activeFilter, onSelect = onFilterSelect)
-        SetlistHeader(label = "${filteredCharts.size} / ${charts.size} SONGS")
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("SETLIST", color = Ivory, fontSize = 18.sp, fontWeight = FontWeight.Black, letterSpacing = 1.2.sp)
+            Text("${filteredCharts.size} / ${charts.size} SONGS", color = IvoryMuted, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
+        }
 
         LazyColumn(
             modifier = Modifier.fillMaxWidth().weight(1f),
@@ -200,7 +207,7 @@ private fun ClassicHomeContent(
             selectedChart?.let { chart ->
                 item {
                     Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                        FeaturedSongCard(
+                        ClassicFeaturedSongCard(
                             chart = chart,
                             metadata = audioMetadata[chart.audioFile],
                             onSelect = { onSelectAudioFile(chart.audioFile) },
@@ -255,7 +262,7 @@ private fun CompactHomeContent(
     ) {
         HomeBrandHeader(onSettings = { onNavigate(RootDestination.PROFILE) })
         selectedChart?.let { chart ->
-            FeaturedSongCard(
+            CompactFeaturedSongCard(
                 chart = chart,
                 metadata = audioMetadata[chart.audioFile],
                 largeText = true,
@@ -371,18 +378,6 @@ private fun StageBackdrop(quietCatalogue: Boolean) {
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.FillBounds
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.20f to Color(0x4400061A),
-                        0.34f to Color(0xD9041028),
-                        1f to Color(0xF7020B1D)
-                    )
-                )
         )
         Canvas(modifier = Modifier.fillMaxSize()) {
             // The travel value is derived from a full sine cycle, so the
@@ -620,7 +615,152 @@ private fun HomeBrandHeader(onSettings: () -> Unit) {
 }
 
 @Composable
-private fun FeaturedSongCard(
+private fun ClassicFeaturedSongCard(
+    chart: Chart,
+    metadata: AudioMetadata?,
+    onSelect: () -> Unit,
+    favorite: Boolean,
+    onFavorite: () -> Unit,
+    onPlay: () -> Unit
+) {
+    val cardMotion = rememberInfiniteTransition(label = "featured-card-motion")
+    val bob by cardMotion.animateFloat(
+        initialValue = -1.5f,
+        targetValue = 1.5f,
+        animationSpec = infiniteRepeatable(tween(1800), repeatMode = RepeatMode.Reverse),
+        label = "card-bob"
+    )
+    val glow by cardMotion.animateFloat(
+        initialValue = 0.38f,
+        targetValue = 0.90f,
+        animationSpec = infiniteRepeatable(tween(1400), repeatMode = RepeatMode.Reverse),
+        label = "card-glow"
+    )
+    val shimmer by cardMotion.animateFloat(
+        initialValue = -0.25f,
+        targetValue = 1.25f,
+        animationSpec = infiniteRepeatable(tween(3200, easing = LinearEasing), repeatMode = RepeatMode.Reverse),
+        label = "card-shimmer"
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer { translationY = bob }
+            .clip(RoundedCornerShape(25.dp))
+            .clickable(onClick = onSelect)
+            .background(Ivory)
+            .border(2.dp, PopPink.copy(alpha = 0.75f + glow * 0.25f), RoundedCornerShape(25.dp))
+    ) {
+        Column {
+            Box(modifier = Modifier.fillMaxWidth().aspectRatio(584f / 510f)) {
+                CoverArtwork(chart = chart, metadata = metadata)
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val shineX = size.width * shimmer
+                    drawRect(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = 0.06f),
+                                Color.White.copy(alpha = 0.20f),
+                                Color.Transparent
+                            ),
+                            start = Offset(shineX - size.width * 0.24f, 0f),
+                            end = Offset(shineX + size.width * 0.24f, size.height)
+                        )
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 11.dp, vertical = 9.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        chart.title,
+                        color = Color(0xFF111937),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        chart.artist.ifBlank { "Unknown artist" },
+                        color = Color(0xFF59638C),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .padding(start = 7.dp)
+                        .width(62.dp)
+                        .border(1.dp, Color(0xFFB7BEDA), RoundedCornerShape(0.dp))
+                        .padding(start = 7.dp),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("BPM ${chart.bpm}", color = Color(0xFF29345E), fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(
+                        formatDuration(metadata?.durationMs) ?: songDuration(chart, metadata),
+                        color = Color(0xFF29345E),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 1.dp)
+                    )
+                    Text(starsFor(chart), color = PopPink, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 1.dp))
+                }
+                Text(
+                    if (favorite) "♥" else "♡",
+                    color = if (favorite) PopPink else Color(0xFF29345E),
+                    fontSize = 23.sp,
+                    modifier = Modifier.padding(start = 3.dp).clickable(onClick = onFavorite)
+                )
+            }
+            SongAccessStrip(chart, dark = false)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .clip(RoundedCornerShape(27.dp))
+                    .background(Brush.horizontalGradient(listOf(PopPink, Color(0xFFFF1684), PopPink.copy(alpha = 0.9f))))
+                    .clickable(enabled = chart.owned, onClick = onPlay)
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val dotColor = Color.White.copy(alpha = 0.12f)
+                    var x = 10f
+                    while (x < size.width) {
+                        var y = 6f
+                        while (y < size.height) {
+                            drawCircle(dotColor, radius = 1.3f, center = Offset(x, y))
+                            y += 8f
+                        }
+                        x += 8f
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (chart.owned) "▶" else "◆", color = Color.White, fontSize = 20.sp)
+                    Text(
+                        if (chart.owned) "PLAY NOW  ››" else "UNLOCK ${chart.packId.uppercase()}",
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        fontStyle = FontStyle.Italic,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun CompactFeaturedSongCard(
     chart: Chart,
     metadata: AudioMetadata?,
     largeText: Boolean = false,
@@ -784,66 +924,54 @@ private fun PreviewSongRow(
     onFavorite: () -> Unit,
     onPlay: () -> Unit
 ) {
-    val rowAccent = if (selected) PopCyan else Color(0xFF31506B)
+    val rowAccent = if (selected) PopPink else accent
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(36.dp)
-            .clip(RoundedCornerShape(7.dp))
+            .clip(RoundedCornerShape(17.dp))
             .clickable(onClick = onSelect)
-            .background(if (selected) Color(0xFF081A30) else Color(0xFF051326))
-            .border(0.6.dp, rowAccent.copy(alpha = if (selected) 0.45f else 0.42f), RoundedCornerShape(7.dp))
-            .padding(horizontal = 3.dp, vertical = 2.dp),
+            .background(if (selected) Color(0xEE27275F) else Color(0xD9142550))
+            .border(if (selected) 2.dp else 1.dp, rowAccent.copy(alpha = 0.84f), RoundedCornerShape(17.dp))
+            .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(5.dp))) {
+        Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(11.dp))) {
             CoverArtwork(chart = chart, metadata = metadata)
         }
-        Column(modifier = Modifier.weight(1f).padding(start = 7.dp)) {
+        Column(modifier = Modifier.weight(1f).padding(start = 11.dp)) {
             Text(
                 chart.title,
-                color = if (chart.owned) Ivory else IvoryMuted,
+                color = Ivory,
                 style = SongTitle,
-                fontSize = 10.sp,
-                maxLines = 1,
+                fontSize = 16.sp,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                chart.artist.ifBlank { "Unknown" },
+                if (chart.owned) chart.artist.ifBlank { "Unknown" } else "${chart.artist.ifBlank { "Unknown" }}  •  ${chart.packId}",
                 color = IvoryMuted,
-                fontSize = 8.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
-        Text(formatDuration(metadata?.durationMs) ?: songDuration(chart, metadata), color = IvoryMuted, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 5.dp))
-        Text(
-            starsFor(chart),
-            color = if (favorite) PopYellow else if (chart.owned) PopPink else PopPink.copy(alpha = 0.64f),
-            fontSize = 9.sp,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.width(49.dp).clickable(onClick = onFavorite)
-        )
-        if (chart.owned) {
-            Box(
-                modifier = Modifier
-                    .size(29.dp)
-                    .clip(RoundedCornerShape(50))
-                    .border(1.5.dp, PopCyan, RoundedCornerShape(50))
-                    .clickable(onClick = onPlay),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("▶", color = PopCyan, fontSize = 11.sp)
-            }
-        } else {
-            Row(
-                modifier = Modifier.width(68.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text("▣", color = IvoryMuted, fontSize = 12.sp)
-                Text(chart.packId, color = IvoryMuted, fontSize = 7.sp, maxLines = 2)
-            }
+        Box(modifier = Modifier.width(1.dp).height(42.dp).background(accent.copy(alpha = 0.42f)).padding(end = 8.dp))
+        Column(modifier = Modifier.padding(start = 10.dp, end = 8.dp)) {
+            Text("${chart.difficulty.label.uppercase()}  ${chart.level}", color = accent, fontSize = 9.sp, fontWeight = FontWeight.Black)
+            Text("BPM  ${chart.bpm}", color = Ivory, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(formatDuration(metadata?.durationMs) ?: songDuration(chart, metadata), color = IvoryMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 1.dp))
+            Text(starsFor(chart), color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 1.dp))
+        }
+        Text(if (favorite) "♥" else "♡", color = if (favorite) PopPink else IvoryMuted, fontSize = 18.sp, modifier = Modifier.padding(end = 6.dp).clickable(onClick = onFavorite))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(50))
+                .border(1.5.dp, Ivory, RoundedCornerShape(50))
+                .clickable(enabled = chart.owned, onClick = onPlay),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(if (chart.owned) "▶" else "◆", color = if (chart.owned) Ivory else PopYellow, fontSize = 13.sp)
         }
     }
 }
