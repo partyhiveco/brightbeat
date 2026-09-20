@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import com.example.vosclone.chart.Chart
 import com.example.vosclone.chart.ChartLoader
 import com.example.vosclone.engine.GameSession
+import com.example.vosclone.engine.PlayerProgressStore
 import com.example.vosclone.engine.TimingCalibrationStore
 import com.example.vosclone.ui.calibration.CalibrationScreen
 import com.example.vosclone.ui.gameplay.GameplayScreen
@@ -24,17 +25,6 @@ import com.example.vosclone.ui.profile.ProfileScreen
 import com.example.vosclone.ui.results.ResultsScreen
 import com.example.vosclone.ui.shop.ShopScreen
 import com.example.vosclone.ui.theme.VosCloneTheme
-
-private val DEMO_CHART_FILES = listOf(
-    "demo1.json",
-    "demo2.json",
-    "demo3.json",
-    "demo4.json",
-    "demo5.json",
-    "demo6.json",
-    "demo7.json",
-    "demo8.json"
-)
 
 private sealed class Screen {
     data object Menu : Screen()
@@ -63,9 +53,10 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             val demoCharts = remember {
-                DEMO_CHART_FILES.map { ChartLoader.loadFromAssets(this, it) }
+                ChartLoader.loadBundledCatalogue(this, songCount = 21)
             }
             var screen by remember { mutableStateOf<Screen>(Screen.Menu) }
+            var playerProgress by remember { mutableStateOf(PlayerProgressStore.load(this)) }
             var timingOffsetMs by remember { mutableLongStateOf(TimingCalibrationStore.load(this)) }
             val onNavigate: (RootDestination) -> Unit = { destination ->
                 screen = when (destination) {
@@ -80,11 +71,19 @@ class MainActivity : ComponentActivity() {
                     when (s) {
                         is Screen.Menu -> MenuScreen(
                             charts = demoCharts,
-                            onSelectChart = { chart -> screen = Screen.Playing(chart) },
+                            progress = playerProgress,
+                            onToggleFavorite = { audioFile ->
+                                playerProgress = PlayerProgressStore.toggleFavorite(this, audioFile)
+                            },
+                            onSelectChart = { chart ->
+                                playerProgress = PlayerProgressStore.markRecent(this, chart.audioFile)
+                                screen = Screen.Playing(chart)
+                            },
                             onNavigate = onNavigate
                         )
                         is Screen.Shop -> ShopScreen(onNavigate = onNavigate)
                         is Screen.Profile -> ProfileScreen(
+                            progress = playerProgress,
                             onNavigate = onNavigate,
                             onCalibrate = { screen = Screen.Calibration }
                         )
@@ -101,7 +100,10 @@ class MainActivity : ComponentActivity() {
                             chart = s.chart,
                             assetAudioPath = "audio/${s.chart.audioFile}",
                             timingOffsetMs = timingOffsetMs,
-                            onFinished = { session -> screen = Screen.Results(session) },
+                            onFinished = { session ->
+                                playerProgress = PlayerProgressStore.recordCompletion(this, session)
+                                screen = Screen.Results(session)
+                            },
                             onQuit = { screen = Screen.Menu }
                         )
                         is Screen.Results -> ResultsScreen(

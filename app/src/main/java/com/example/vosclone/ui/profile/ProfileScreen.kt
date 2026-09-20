@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.vosclone.R
+import com.example.vosclone.engine.PlayerProgress
 import com.example.vosclone.ui.components.BrightBeatActionLabel
 import com.example.vosclone.ui.components.BrightBeatIcon
 import com.example.vosclone.ui.components.BrightBeatScreenHeader
@@ -58,6 +59,7 @@ import com.example.vosclone.ui.theme.PopYellow
 /** Player hub for progress, entitlements, rewards, and timing calibration. */
 @Composable
 fun ProfileScreen(
+    progress: PlayerProgress,
     onNavigate: (RootDestination) -> Unit,
     onCalibrate: () -> Unit
 ) {
@@ -82,7 +84,7 @@ fun ProfileScreen(
             )
             Spacer(modifier = Modifier.height(20.dp))
 
-            ProfileHero()
+            ProfileHero(progress)
 
             Spacer(modifier = Modifier.height(16.dp))
             SectionHeading("ACCESS", PopCyan)
@@ -185,7 +187,7 @@ private fun ProfileBackdrop() {
 }
 
 @Composable
-private fun ProfileHero() {
+private fun ProfileHero(progress: PlayerProgress) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -228,7 +230,7 @@ private fun ProfileHero() {
                         letterSpacing = 0.35.sp
                     )
                     Text(
-                        "0 SONGS MASTERED",
+                        "${progress.songs.values.count { it.mastery >= 85 }} SONGS MASTERED",
                         color = Ivory,
                         fontSize = 23.sp,
                         lineHeight = 26.sp,
@@ -249,7 +251,7 @@ private fun ProfileHero() {
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Text("LV 01", color = PopLavender, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text("LV ${progress.level.toString().padStart(2, '0')}", color = PopLavender, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
             }
         }
     }

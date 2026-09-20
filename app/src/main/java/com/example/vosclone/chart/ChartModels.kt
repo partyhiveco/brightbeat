@@ -2,6 +2,11 @@ package com.example.vosclone.chart
 
 import kotlinx.serialization.Serializable
 
+@Serializable
+enum class ChartDifficulty(val label: String) {
+    EASY("Easy"), NORMAL("Normal"), HARD("Hard")
+}
+
 /**
  * A single note in a chart.
  * timeMs   - the audio playback timestamp (ms) at which this note should be hit.
@@ -30,5 +35,10 @@ data class Chart(
     val bpm: Int,
     val lanes: Int = 4,
     val offsetMs: Long = 0L,
+    val difficulty: ChartDifficulty = ChartDifficulty.NORMAL,
+    val level: Int = 5,
+    val stars: Int = 3,
+    val packId: String = "Starter Set",
+    val owned: Boolean = true,
     val notes: List<ChartNote>
 )
