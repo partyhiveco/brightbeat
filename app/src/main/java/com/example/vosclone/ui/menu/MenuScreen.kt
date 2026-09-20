@@ -1,5 +1,6 @@
 package com.example.vosclone.ui.menu
 
+import android.graphics.BitmapFactory
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -30,23 +31,34 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.setValue
 import kotlin.math.cos
+import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.random.Random
+import com.example.vosclone.audio.AudioMetadata
+import com.example.vosclone.audio.AudioMetadataLoader
 import com.example.vosclone.chart.Chart
 import com.example.vosclone.R
 import com.example.vosclone.ui.components.BrightBeatLogo
@@ -72,7 +84,18 @@ fun MenuScreen(
     onSelectChart: (Chart) -> Unit,
     onNavigate: (RootDestination) -> Unit
 ) {
-    val featured = charts.firstOrNull()
+    val context = LocalContext.current
+    val audioFiles = remember(charts) { charts.map { it.audioFile } }
+    val audioMetadata by produceState<Map<String, AudioMetadata>>(
+        initialValue = emptyMap(),
+        context,
+        audioFiles
+    ) {
+        value = AudioMetadataLoader.loadAll(context, audioFiles)
+    }
+    var selectedAudioFile by remember(charts) { mutableStateOf(charts.firstOrNull()?.audioFile) }
+    val selectedBaseChart = charts.firstOrNull { it.audioFile == selectedAudioFile } ?: charts.firstOrNull()
+    val selectedChart = selectedBaseChart?.withAudioMetadata(audioMetadata[selectedBaseChart.audioFile])
 
     Box(modifier = Modifier.fillMaxSize().background(Ink)) {
         StageBackdrop()
@@ -102,7 +125,7 @@ fun MenuScreen(
                 // floating nav overlay instead of ending underneath it.
                 contentPadding = PaddingValues(top = 5.dp, bottom = 80.dp)
             ) {
-                featured?.let { chart ->
+                selectedChart?.let { chart ->
                     item {
                         // The hero is intentionally narrower than the setlist: the
                         // target composition gives the artwork room to breathe and
@@ -111,17 +134,26 @@ fun MenuScreen(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            FeaturedSongCard(chart = chart, onPlay = { onSelectChart(chart) })
+                            FeaturedSongCard(
+                                chart = chart,
+                                metadata = audioMetadata[chart.audioFile],
+                                onSelect = { selectedAudioFile = chart.audioFile },
+                                onPlay = { onSelectChart(chart) }
+                            )
                         }
                     }
                 }
                 charts.drop(1).forEachIndexed { index, chart ->
+                    val displayChart = chart.withAudioMetadata(audioMetadata[chart.audioFile])
                     item(key = chart.audioFile) {
                         Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                             PreviewSongRow(
-                                chart = chart,
+                                chart = displayChart,
+                                metadata = audioMetadata[chart.audioFile],
                                 accent = listOf(PopCyan, PopPink, PopYellow, PopLavender)[index % 4],
-                                onClick = { onSelectChart(chart) }
+                                selected = chart.audioFile == selectedAudioFile,
+                                onSelect = { selectedAudioFile = chart.audioFile },
+                                onPlay = { onSelectChart(displayChart) }
                             )
                         }
                     }
@@ -376,8 +408,12 @@ private fun BrandLockup() {
 }
 
 @Composable
-private fun FeaturedSongCard(chart: Chart, onPlay: () -> Unit) {
-    val title = if (chart.title.equals("Demo Track 1", ignoreCase = true)) "Starlight Again" else chart.title
+private fun FeaturedSongCard(
+    chart: Chart,
+    metadata: AudioMetadata?,
+    onSelect: () -> Unit,
+    onPlay: () -> Unit
+) {
     val cardMotion = rememberInfiniteTransition(label = "featured-card-motion")
     val bob by cardMotion.animateFloat(
         initialValue = -1.5f,
@@ -402,6 +438,7 @@ private fun FeaturedSongCard(chart: Chart, onPlay: () -> Unit) {
             .fillMaxWidth()
             .graphicsLayer { translationY = bob }
             .clip(RoundedCornerShape(25.dp))
+            .clickable(onClick = onSelect)
             .background(Ivory)
             .border(2.dp, PopPink.copy(alpha = 0.75f + glow * 0.25f), RoundedCornerShape(25.dp))
     ) {
@@ -409,7 +446,7 @@ private fun FeaturedSongCard(chart: Chart, onPlay: () -> Unit) {
             // Keep the cover's native 584:510 ratio instead of stretching it into
             // a wide banner; this is the compact poster proportion in the target.
             Box(modifier = Modifier.fillMaxWidth().aspectRatio(584f / 510f)) {
-                CoverArtwork()
+                CoverArtwork(chart = chart, metadata = metadata)
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val shineX = size.width * shimmer
                     drawRect(
@@ -434,17 +471,16 @@ private fun FeaturedSongCard(chart: Chart, onPlay: () -> Unit) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        title,
+                        chart.title,
                         color = Color(0xFF111937),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Black,
                         maxLines = 1,
-                        softWrap = false
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        chart.artist
-                            .takeUnless { it.isBlank() || it.contains("Royalty-Free", ignoreCase = true) }
-                            ?: "Lumié",
+                        chart.artist.ifBlank { "Unknown artist" },
                         color = Color(0xFF59638C),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -460,7 +496,13 @@ private fun FeaturedSongCard(chart: Chart, onPlay: () -> Unit) {
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text("BPM ${chart.bpm}", color = Color(0xFF29345E), fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                    Text("2:18", color = Color(0xFF29345E), fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 1.dp))
+                    Text(
+                        formatDuration(metadata?.durationMs) ?: songDuration(chart, metadata),
+                        color = Color(0xFF29345E),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 1.dp)
+                    )
                     Text("★★★★☆", color = PopPink, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 1.dp))
                 }
                 Text("♡", color = Color(0xFF29345E), fontSize = 23.sp, modifier = Modifier.padding(start = 3.dp))
@@ -498,55 +540,118 @@ private fun FeaturedSongCard(chart: Chart, onPlay: () -> Unit) {
 }
 
 @Composable
-private fun CoverArtwork() {
-    Image(
-        painter = painterResource(R.drawable.vos_starlight_cover),
-        contentDescription = null,
-        modifier = Modifier.fillMaxSize(),
-        contentScale = ContentScale.FillBounds
-    )
+private fun CoverArtwork(chart: Chart, metadata: AudioMetadata?) {
+    val embeddedCover: ImageBitmap? = remember(metadata?.embeddedCover) {
+        metadata?.embeddedCover?.let { bytes ->
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        }
+    }
+    when {
+        embeddedCover != null -> Image(
+            bitmap = embeddedCover,
+            contentDescription = "${chart.title} cover",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        fallbackCoverResource(chart.audioFile) != null -> Image(
+            painter = painterResource(fallbackCoverResource(chart.audioFile)!!),
+            contentDescription = "${chart.title} cover",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.FillBounds
+        )
+        else -> FallbackCoverArtwork(chart)
+    }
 }
 
 @Composable
-private fun PreviewSongRow(chart: Chart, accent: Color, onClick: () -> Unit) {
+private fun FallbackCoverArtwork(chart: Chart) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val number = chart.audioFile.filter { it.isDigit() }.toIntOrNull()?.minus(1)
+        val palette = fallbackCoverPalettes[
+            (number?.takeIf { it >= 0 } ?: (chart.audioFile.hashCode() and Int.MAX_VALUE)) %
+                fallbackCoverPalettes.size
+        ]
+        drawRect(brush = Brush.verticalGradient(listOf(palette.top, palette.bottom)))
+        drawCircle(
+            color = palette.accent.copy(alpha = 0.90f),
+            radius = size.minDimension * 0.42f,
+            center = Offset(size.width * 0.72f, size.height * 0.26f)
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = 0.24f),
+            radius = size.minDimension * 0.10f,
+            center = Offset(size.width * 0.30f, size.height * 0.30f)
+        )
+        drawLine(
+            color = Color.White.copy(alpha = 0.72f),
+            start = Offset(size.width * 0.06f, size.height * 0.78f),
+            end = Offset(size.width * 0.94f, size.height * 0.40f),
+            strokeWidth = size.minDimension * 0.07f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = palette.accent.copy(alpha = 0.70f),
+            start = Offset(size.width * 0.14f, size.height * 0.16f),
+            end = Offset(size.width * 0.86f, size.height * 0.86f),
+            strokeWidth = size.minDimension * 0.025f,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+private fun fallbackCoverResource(audioFile: String): Int? = when (audioFile) {
+    "demo1.mp3" -> R.drawable.vos_starlight_cover
+    "demo2.mp3" -> R.drawable.thumb_blue_tomorrow
+    "demo3.mp3" -> R.drawable.thumb_neon_parade
+    "demo4.mp3" -> R.drawable.thumb_blooming_signal
+    "demo5.mp3" -> R.drawable.night_drive_pack_cover
+    else -> null
+}
+
+private data class ArtworkPalette(val top: Color, val bottom: Color, val accent: Color)
+
+private val fallbackCoverPalettes = listOf(
+    ArtworkPalette(Color(0xFF0B1F58), Color(0xFF4A0D73), PopCyan),
+    ArtworkPalette(Color(0xFF172A67), Color(0xFF6B174F), PopPink),
+    ArtworkPalette(Color(0xFF3E1D68), Color(0xFF101947), PopYellow),
+    ArtworkPalette(Color(0xFF123B66), Color(0xFF27124F), PopLavender),
+    ArtworkPalette(Color(0xFF3B214F), Color(0xFF0A2A55), PopCyan),
+    ArtworkPalette(Color(0xFF53204B), Color(0xFF15205A), PopPink),
+    ArtworkPalette(Color(0xFF173E5A), Color(0xFF351957), PopYellow),
+    ArtworkPalette(Color(0xFF2A275D), Color(0xFF0A3552), PopLavender)
+)
+
+@Composable
+private fun PreviewSongRow(
+    chart: Chart,
+    metadata: AudioMetadata?,
+    accent: Color,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    onPlay: () -> Unit
+) {
+    val rowAccent = if (selected) PopPink else accent
     Row(
         modifier = Modifier
             .fillMaxWidth()
-        .clickable(onClick = onClick)
-        .clip(RoundedCornerShape(17.dp))
-        .background(Color(0xD9142550))
-            .border(1.dp, accent.copy(alpha = 0.72f), RoundedCornerShape(17.dp))
+            .clip(RoundedCornerShape(17.dp))
+            .clickable(onClick = onSelect)
+            .background(if (selected) Color(0xEE27275F) else Color(0xD9142550))
+            .border(if (selected) 2.dp else 1.dp, rowAccent.copy(alpha = 0.84f), RoundedCornerShape(17.dp))
             .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(11.dp))) {
-            val targetThumb = when {
-                chart.title.equals("Blue Tomorrow", ignoreCase = true) -> R.drawable.thumb_blue_tomorrow
-                chart.title.equals("Neon Parade", ignoreCase = true) -> R.drawable.thumb_neon_parade
-                chart.title.equals("Blooming Signal", ignoreCase = true) -> R.drawable.thumb_blooming_signal
-                else -> 0
-            }
-            if (targetThumb != 0) {
-                Image(
-                    painter = painterResource(targetThumb),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.FillBounds
-                )
-            } else {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    drawRect(brush = Brush.linearGradient(listOf(accent.copy(alpha = 0.8f), Color(0xFF15104D))))
-                    drawCircle(PopYellow.copy(alpha = 0.8f), size.minDimension * 0.22f, Offset(size.width * 0.64f, size.height * 0.32f))
-                    drawLine(Color.White.copy(alpha = 0.7f), Offset(0f, size.height * 0.78f), Offset(size.width, size.height * 0.32f), 2f)
-                }
-            }
+            CoverArtwork(chart = chart, metadata = metadata)
         }
         Column(modifier = Modifier.weight(1f).padding(start = 11.dp)) {
             Text(
-                if (chart.title.equals("Demo Track 1", ignoreCase = true)) "Starlight Again" else chart.title,
+                chart.title,
                 color = Ivory,
                 style = SongTitle,
-                fontSize = 16.sp
+                fontSize = 16.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 chart.artist.ifBlank { "Unknown" },
@@ -559,19 +664,38 @@ private fun PreviewSongRow(chart: Chart, accent: Color, onClick: () -> Unit) {
         Box(modifier = Modifier.width(1.dp).height(42.dp).background(accent.copy(alpha = 0.42f)).padding(end = 8.dp))
         Column(modifier = Modifier.padding(start = 10.dp, end = 8.dp)) {
             Text("BPM  ${chart.bpm}", color = Ivory, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-            Text(songDuration(chart), color = IvoryMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 1.dp))
+            Text(formatDuration(metadata?.durationMs) ?: songDuration(chart, metadata), color = IvoryMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 1.dp))
             Text(songRating(chart), color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 1.dp))
         }
-        Box(modifier = Modifier.size(36.dp).border(1.5.dp, Ivory, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(50))
+                .border(1.5.dp, Ivory, RoundedCornerShape(50))
+                .clickable(onClick = onPlay),
+            contentAlignment = Alignment.Center
+        ) {
             Text("▶", color = Ivory, fontSize = 13.sp)
         }
     }
 }
 
-private fun songDuration(chart: Chart): String = when {
-    chart.title.equals("Blue Tomorrow", ignoreCase = true) -> "2:36"
-    chart.title.equals("Neon Parade", ignoreCase = true) -> "2:10"
-    chart.title.equals("Blooming Signal", ignoreCase = true) -> "2:27"
+private fun Chart.withAudioMetadata(metadata: AudioMetadata?): Chart = metadata?.let {
+    copy(
+        title = it.title ?: title,
+        artist = it.artist ?: artist
+    )
+} ?: this
+
+private fun formatDuration(durationMs: Long?): String? {
+    val totalSeconds = durationMs?.let { ((it + 500L) / 1000L).toInt() } ?: return null
+    return "${totalSeconds / 60}:${(totalSeconds % 60).toString().padStart(2, '0')}"
+}
+
+private fun songDuration(chart: Chart, metadata: AudioMetadata?): String = formatDuration(metadata?.durationMs) ?: when (chart.audioFile) {
+    "demo2.mp3" -> "2:36"
+    "demo3.mp3" -> "2:10"
+    "demo4.mp3" -> "2:27"
     else -> "2:18"
 }
 
