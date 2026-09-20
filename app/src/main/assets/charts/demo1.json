@@ -1,0 +1,24 @@
+{
+  "title": "Demo Track 1",
+  "artist": "Royalty-Free Placeholder",
+  "audioFile": "demo1.mp3",
+  "bpm": 120,
+  "lanes": 4,
+  "offsetMs": 0,
+  "notes": [
+    {"lane": 0, "timeMs": 2000, "type": "tap"},
+    {"lane": 2, "timeMs": 2500, "type": "tap"},
+    {"lane": 1, "timeMs": 3250, "type": "tap"},
+    {"lane": 3, "timeMs": 3750, "type": "tap"},
+    {"lane": 1, "timeMs": 4500, "type": "tap"},
+    {"lane": 3, "timeMs": 4500, "type": "tap"},
+    {"lane": 0, "timeMs": 5000, "type": "tap"},
+    {"lane": 2, "timeMs": 5500, "type": "tap"},
+    {"lane": 3, "timeMs": 6250, "type": "tap"},
+    {"lane": 0, "timeMs": 6750, "type": "hold", "durationMs": 1000},
+    {"lane": 2, "timeMs": 7250, "type": "tap"},
+    {"lane": 1, "timeMs": 8000, "type": "tap"},
+    {"lane": 3, "timeMs": 8000, "type": "tap"},
+    {"lane": 0, "timeMs": 8750, "type": "tap"}
+  ]
+}

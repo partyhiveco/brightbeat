@@ -1,0 +1,17 @@
+# Local verification artifacts
+.dream-loop/
+
+# Gradle and Android build outputs
+.gradle/
+**/build/
+
+# Local Android SDK configuration
+local.properties
+
+# IDE metadata
+.idea/
+*.iml
+
+# Root-level screenshots and captures from device verification
+/*.png
+/*.xml
